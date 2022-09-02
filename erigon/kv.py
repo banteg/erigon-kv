@@ -11,7 +11,7 @@ class ErigonKV:
         self.stub = KVStub(self.channel)
         self.queue = SimpleQueue()
         self.reply = self.stub.Tx(iter(self.queue.get, None))
-        self.cursor = None
+        self.transaction = next(self.reply)
 
     def open(self, bucket):
         op = Cursor(op=Op.OPEN, bucketName=bucket)
