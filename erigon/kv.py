@@ -18,7 +18,7 @@ class ErigonKV:
         self.queue.put(op)
         self.cursor = next(self.reply).cursorID
 
-    def read(self, op):
-        op = Cursor(op=op, cursor=self.cursor)
+    def read(self, op, k=None):
+        op = Cursor(op=op, cursor=self.cursor, k=k)
         self.queue.put(op)
         return next(self.reply)
