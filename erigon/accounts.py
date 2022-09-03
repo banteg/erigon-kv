@@ -29,7 +29,7 @@ class Account(BaseModel):
     address: str
     nonce: int = 0
     balance: int = 0
-    incarnation: Optional[int] = None
+    incarnation: int = 0  # 0 - not set, contracts start with 1, increased by selfdestruct + create2
     code_hash: Optional[bytes] = None
 
     @classmethod
@@ -62,13 +62,11 @@ class Account(BaseModel):
         return data.v
 
     def read_storage(self):
-        if self.incarnation is None:
+        if not self.incarnation:
             return {}
         kv = ErigonKV()
         kv.open("PlainState", dup_sort=True)
-        prefix = to_canonical_address(self.address) + self.incarnation.to_bytes(
-            8, "big"
-        )
+        prefix = to_canonical_address(self.address) + self.incarnation.to_bytes(8, "big")
         data = [kv.read(Op.SEEK_EXACT, k=prefix)]
         while item := kv.read(Op.NEXT_DUP):
             if not item.k.startswith(prefix):
