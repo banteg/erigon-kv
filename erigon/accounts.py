@@ -7,6 +7,7 @@ from eth_utils import to_canonical_address
 from pydantic import BaseModel
 from typer import Typer
 
+from hexbytes import HexBytes
 from erigon.kv import ErigonKV, Op
 
 app = Typer()
@@ -27,7 +28,7 @@ def read_int(stream):
 class Account(BaseModel):
     nonce: int = 0
     balance: int = 0
-    incarnation: int = 0
+    incarnation: Optional[int] = None
     code_hash: Optional[bytes] = None
 
     @classmethod
@@ -51,6 +52,13 @@ class Account(BaseModel):
             account.code_hash = stream.read(length)
 
         return account
+
+    def read_code(self):
+        assert self.code_hash, "no code"
+        kv = ErigonKV()
+        kv.open("Code")
+        data = kv.read(Op.SEEK_EXACT, k=self.code_hash)
+        return data.v
 
 
 @app.command()
