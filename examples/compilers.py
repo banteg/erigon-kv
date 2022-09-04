@@ -1,16 +1,16 @@
 import itertools
 from collections import Counter
-import io
 import cbor
 from erigon.kv import ErigonKV, Op
 from erigon.accounts import Account
 from rich import box
 from rich.live import Live
 from rich.table import Table
-from rich.progress import track, Progress
+from rich.progress import Progress
 from typer import Typer
 from rich.console import Console, Group
 from eth.vm import opcode_values
+from eth_utils import keccak
 
 app = Typer()
 
@@ -31,10 +31,16 @@ OPCODES[0xFE] = "INVALID"
 
 
 def detect_compiler(code):
+    # https://docs.soliditylang.org/en/v0.4.22/metadata.html#encoding-of-the-metadata-hash-in-the-bytecode
+    if code[-43:-41] == b"\xa1\x66":
+        # {"bzzr0": <32 bytes swarm hash>}
+        pass  # this is not useful for us
+
     # read cbor-encoded version from solidity 0.6.0+
     # https://docs.soliditylang.org/en/v0.8.13/metadata.html#encoding-of-the-metadata-hash-in-the-bytecode
     if code[-53:-51] == b"\xa2\x64":
         try:
+            # {"ipfs": <IPFS hash>, "solc": <compiler version>}
             data = cbor.loads(code[-53:])
             version = tuple(data["solc"])
             return "solc", version
@@ -45,6 +51,7 @@ def detect_compiler(code):
     # https://github.com/vyperlang/vyper/blob/b096dbdc9d1d61e7d34d7ed2e4107234951b982b/vyper/ir/compile_ir.py#L996
     if code[-13:-11] == b"\xa1\x65":
         try:
+            # {"vyper": [0, 3, 6]}
             data = cbor.loads(code[-13:])
             version = tuple(data["vyper"])
             return "vyper", version
@@ -55,6 +62,15 @@ def detect_compiler(code):
     for prefix in PREFIXES:
         if code.startswith(bytes.fromhex(prefix)):
             return PREFIXES[prefix]
+
+
+def strip_metadata(code):
+    if code[-43:-41] == b"\xa1\x66":
+        return code[:-43]
+    elif code[-53:-51] == b"\xa2\x64":
+        return code[:-53]
+    else:
+        return code
 
 
 def generate_table(data) -> Table:
@@ -70,16 +86,17 @@ def generate_table(data) -> Table:
         "vyper": "green",
         "proxy": "cyan",
         "eoa": "yellow",
+        "gastoken": "magenta",
         "unknown": "dim",
     }
 
-    for key, value in data.most_common(50):
+    for key, value in data.most_common():
         if key is None:
             compiler, version = "[dim]--", "[dim]--"
         else:
             if isinstance(key, tuple):
                 compiler, version = key
-                compiler = f"[{colors.get(compiler, '')}]{compiler}"
+                compiler = f"[{colors[compiler]}]{compiler}"
             else:
                 compiler, version = key, ""
             if isinstance(version, tuple):
@@ -93,17 +110,20 @@ def generate_table(data) -> Table:
 def compilers():
     kv = ErigonKV()
     kv.open("Code")
+    seen = set()
     compiler_counts = Counter()
 
     with Live() as live:
         for i in itertools.count(1):
-            # print(i)
             row = kv.read(Op.NEXT)
             if row.k == b"":
                 live.update(generate_table(compiler_counts))
                 break
-            compiler = detect_compiler(row.v)
-            compiler_counts[compiler] += 1
+            codehash = keccak(strip_metadata(row.v))
+            if codehash not in seen:
+                seen.add(codehash)
+                compiler = detect_compiler(row.v)
+                compiler_counts[compiler] += 1
             if i % 1000 == 0:
                 live.update(generate_table(compiler_counts))
 
@@ -163,6 +183,7 @@ def accounts():
 
 def to_opcodes(code):
     pos = 0
+    code = strip_metadata(code)
     while pos < len(code):
         op = code[pos]
         name = OPCODES.get(op, f"{op:02X}")
