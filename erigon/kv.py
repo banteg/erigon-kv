@@ -35,6 +35,21 @@ class AsyncErigonKV:
     def open(self, bucket) -> AsyncErigonCursor:
         return AsyncErigonCursor(self.conn, bucket)
 
+    async def scan(self, bucket):
+        await self.conn.write(Cursor(op=Op.OPEN, bucketName=bucket))
+        cursor = await self.conn.read()
+
+        while True:
+            await self.conn.write(Cursor(op=Op.NEXT, cursor=cursor.cursorID))
+            row = await self.conn.read()
+            if row.k == b'':
+                break
+            yield row
+            break
+
+        await self.conn.write(Cursor(op=Op.CLOSE, cursor=cursor.cursorID))
+        cursor = await self.conn.read()
+
 
 class AsyncErigonCursor:
     def __init__(self, conn, bucket):
