@@ -1,6 +1,6 @@
 import itertools
 from collections import Counter
-
+import io
 import cbor
 from erigon.kv import ErigonKV, Op
 from erigon.accounts import Account
@@ -10,6 +10,7 @@ from rich.table import Table
 from rich.progress import track, Progress
 from typer import Typer
 from rich.console import Console, Group
+from eth.vm import opcode_values
 
 app = Typer()
 
@@ -20,7 +21,13 @@ PREFIXES = {
     "6060604052": ("solc", "0.4.11-0.4.21"),
     "363d3d373d3d3d363d73": ("proxy", "minimal"),
     "366000600037611000600036600073": ("proxy", "vyper"),
+    "6eb3f879cb30fe243b4dfee438691c043318585733ff": ("gastoken", "gst2"),
 }
+
+OPCODES = {
+    getattr(opcode_values, name): name for name in dir(opcode_values) if not name.startswith("_")
+}
+OPCODES[0xFE] = "INVALID"
 
 
 def detect_compiler(code):
@@ -56,8 +63,8 @@ def generate_table(data) -> Table:
     table = Table(box=box.SIMPLE, show_footer=True)
     table.add_column("compiler")
     table.add_column("version")
-    table.add_column("contracts", footer=f"{total}")
-    table.add_column("percent")
+    table.add_column("contracts", footer=f"{total:,d}", justify="right")
+    table.add_column("percent", justify="right")
     colors = {
         "solc": "red",
         "vyper": "green",
@@ -66,15 +73,18 @@ def generate_table(data) -> Table:
         "unknown": "dim",
     }
 
-    for key, value in data.most_common():
+    for key, value in data.most_common(50):
         if key is None:
             compiler, version = "[dim]--", "[dim]--"
         else:
-            compiler, version = key
-            compiler = f"[{colors[compiler]}]{compiler}"
+            if isinstance(key, tuple):
+                compiler, version = key
+                compiler = f"[{colors.get(compiler, '')}]{compiler}"
+            else:
+                compiler, version = key, ""
             if isinstance(version, tuple):
                 version = ".".join(map(str, version))
-        table.add_row(f"{compiler}", f"{version}", f"{value}", f"{value / total:.3%}")
+        table.add_row(f"{compiler}", f"{version}", f"{value:,d}", f"{value / total:.3%}")
 
     return table
 
@@ -149,6 +159,45 @@ def accounts():
 
             # increment 20th byte and find the next address
             key = int.to_bytes(int.from_bytes(row.k[:20], "big") + 1, 20, "big")
+
+
+def to_opcodes(code):
+    pos = 0
+    while pos < len(code):
+        op = code[pos]
+        name = OPCODES.get(op, f"{op:02X}")
+        yield name
+        # strip push arguments
+        if 0x60 <= op <= 0x7F:
+            pos += op - 0x60 + 1
+        pos += 1
+
+
+@app.command()
+def opcodes():
+    console = Console()
+    bar = Progress(console=console)
+    code_task = bar.add_task("code")
+    kv = ErigonKV()
+    kv.open("Code")
+    opcode_counts = Counter()
+    only_opcodes = set(OPCODES.values())
+
+    with Live() as live:
+        for i in itertools.count(1):
+            row = kv.read(Op.NEXT)
+            if row.k == b"":
+                live.update(generate_table(opcode_counts))
+                break
+            for opcode in to_opcodes(row.v):
+                if opcode not in only_opcodes:
+                    continue
+                opcode_counts[opcode] += 1
+            if i % 1000 == 0:
+                progress = int.from_bytes(row.k, "big") / 2**256
+                bar.update(code_task, completed=progress * 100)
+                table = generate_table(opcode_counts)
+                live.update(Group(bar, table), refresh=True)
 
 
 if __name__ == "__main__":
