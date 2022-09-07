@@ -40,7 +40,10 @@ class ErigonCursor:
 
     async def __anext__(self):
         await self.conn.write(Cursor(op=Op.NEXT, cursor=self.cursor))
-        return await self.conn.read()
+        row = await self.conn.read()
+        if row.k == b'':
+            raise StopAsyncIteration
+        return row
 
     async def seek(self, key):
         await self.conn.write(Cursor(op=Op.SEEK, k=key, cursor=self.cursor))
