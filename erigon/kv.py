@@ -39,12 +39,26 @@ class ErigonCursor:
         return self
 
     async def __anext__(self):
-        await self.conn.write(Cursor(op=Op.NEXT, cursor=self.cursor))
+        return await self.read(Op.NEXT)
+
+    async def read(self, op, key=None, value=None):
+        await self.conn.write(Cursor(op=op, k=key, v=value, cursor=self.cursor))
         row = await self.conn.read()
-        if row.k == b'':
+        if row.k == b"":
             raise StopAsyncIteration
         return row
 
     async def seek(self, key):
-        await self.conn.write(Cursor(op=Op.SEEK, k=key, cursor=self.cursor))
-        return await self.conn.read()
+        return await self.read(Op.SEEK, key=key)
+
+    async def seek_exact(self, key):
+        return await self.read(Op.SEEK_EXACT, key=key)
+
+    async def first(self):
+        return await self.read(Op.FIRST)
+
+    async def last(self):
+        return await self.read(Op.LAST)
+
+    async def prev(self):
+        return await self.read(Op.PREV)
