@@ -28,9 +28,9 @@ def encode(data: bytes):
         case 16:
             return H128(hi=to_int(data[:8]), lo=to_int(data[8:]))
         case 20:
-            return H160(hi=encode(data[:16]), lo=to_int(data[16:]))
+            return H160(hi=encode(data[:16]), lo=to_int(data[16:20]))
         case 32:
-            return H256(hi=encode(data[:16]), lo=encode(data[16:]))
+            return H256(hi=encode(data[:16]), lo=encode(data[16:32]))
         case 64:
             return H512(hi=encode(data[:32]), lo=encode(data[32:]))
         case 128:
