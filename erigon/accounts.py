@@ -80,11 +80,10 @@ async def read_storage(kv: ErigonKV, canonical_address: bytes, account: Account)
         storage[row.v[:32]] = row.v[32:]
 
         async for row in cursor:
-            debug(row.k.hex(), row.v.hex())
             if not row.k.startswith(prefix):
                 break
             # no key | [key:32][value:32]
-            storage[row.k[-32:]] = row.v.rjust(32, b"\x00")
+            storage[row.k[-32:]] = row.v
 
         return storage
 
@@ -102,7 +101,7 @@ async def test_all(address: str):
     debug(code)
 
     storage = await read_storage(kv, canonical_address, account)
-    debug(storage)
+    debug({encode_hex(k): encode_hex(v) for k, v in storage.items()})
 
 
 @app.command()
