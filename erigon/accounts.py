@@ -5,7 +5,6 @@ from typing import Optional
 
 from devtools import debug
 from eth_utils import encode_hex, to_canonical_address
-from hexbytes import HexBytes
 from pydantic import BaseModel
 from typer import Typer
 
