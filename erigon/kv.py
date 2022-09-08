@@ -1,8 +1,8 @@
 from contextlib import asynccontextmanager
 
 import grpc
-from proto.remote.kv_pb2 import Cursor, Op
-from proto.remote.kv_pb2_grpc import KVStub
+from erigon.proto.remote.kv_pb2 import Cursor, Op
+from erigon.proto.remote.kv_pb2_grpc import KVStub
 
 
 class ErigonKV:

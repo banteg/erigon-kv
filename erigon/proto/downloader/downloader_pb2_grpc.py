@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from proto.downloader import downloader_pb2 as downloader_dot_downloader__pb2
+from erigon.proto.downloader import downloader_pb2 as downloader_dot_downloader__pb2
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 

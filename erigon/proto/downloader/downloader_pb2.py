@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from proto.types import types_pb2 as types_dot_types__pb2
+from erigon.proto.types import types_pb2 as types_dot_types__pb2
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1b\x64ownloader/downloader.proto\x12\ndownloader\x1a\x1bgoogle/protobuf/empty.proto\x1a\x11types/types.proto\"?\n\x0c\x44ownloadItem\x12\x0c\n\x04path\x18\x01 \x01(\t\x12!\n\x0ctorrent_hash\x18\x02 \x01(\x0b\x32\x0b.types.H160\":\n\x0f\x44ownloadRequest\x12\'\n\x05items\x18\x01 \x03(\x0b\x32\x18.downloader.DownloadItem\"\x0f\n\rVerifyRequest\"\x0e\n\x0cStatsRequest\"\xe1\x01\n\nStatsReply\x12\x15\n\rmetadataReady\x18\x01 \x01(\x05\x12\x12\n\nfilesTotal\x18\x02 \x01(\x05\x12\x13\n\x0bpeersUnique\x18\x04 \x01(\x05\x12\x18\n\x10\x63onnectionsTotal\x18\x05 \x01(\x04\x12\x11\n\tcompleted\x18\x06 \x01(\x08\x12\x10\n\x08progress\x18\x07 \x01(\x02\x12\x16\n\x0e\x62ytesCompleted\x18\x08 \x01(\x04\x12\x12\n\nbytesTotal\x18\t \x01(\x04\x12\x12\n\nuploadRate\x18\n \x01(\x04\x12\x14\n\x0c\x64ownloadRate\x18\x0b \x01(\x04\x32\xcb\x01\n\nDownloader\x12\x41\n\x08\x44ownload\x12\x1b.downloader.DownloadRequest\x1a\x16.google.protobuf.Empty\"\x00\x12=\n\x06Verify\x12\x19.downloader.VerifyRequest\x1a\x16.google.protobuf.Empty\"\x00\x12;\n\x05Stats\x12\x18.downloader.StatsRequest\x1a\x16.downloader.StatsReply\"\x00\x42\x19Z\x17./downloader;downloaderb\x06proto3')

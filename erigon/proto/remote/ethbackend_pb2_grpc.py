@@ -3,8 +3,8 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from proto.remote import ethbackend_pb2 as remote_dot_ethbackend__pb2
-from proto.types import types_pb2 as types_dot_types__pb2
+from erigon.proto.remote import ethbackend_pb2 as remote_dot_ethbackend__pb2
+from erigon.proto.types import types_pb2 as types_dot_types__pb2
 
 
 class ETHBACKENDStub(object):

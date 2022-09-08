@@ -3,8 +3,8 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from proto.p2psentry import sentry_pb2 as p2psentry_dot_sentry__pb2
-from proto.types import types_pb2 as types_dot_types__pb2
+from erigon.proto.p2psentry import sentry_pb2 as p2psentry_dot_sentry__pb2
+from erigon.proto.types import types_pb2 as types_dot_types__pb2
 
 
 class SentryStub(object):

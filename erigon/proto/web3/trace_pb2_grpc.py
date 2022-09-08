@@ -2,8 +2,8 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from proto.web3 import common_pb2 as web3_dot_common__pb2
-from proto.web3 import trace_pb2 as web3_dot_trace__pb2
+from erigon.proto.web3 import common_pb2 as web3_dot_common__pb2
+from erigon.proto.web3 import trace_pb2 as web3_dot_trace__pb2
 
 
 class TraceApiStub(object):
