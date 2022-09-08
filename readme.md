@@ -33,4 +33,4 @@ not all tables use an intuitive layout, read the [annotated source](https://gith
 
 ## high-level api
 
-to describe…
+this interface provides common shortcuts to read block headers, accounts, and to enumerate account storage.
