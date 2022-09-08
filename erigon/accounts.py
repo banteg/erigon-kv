@@ -1,13 +1,14 @@
+import asyncio
 import enum
 import io
 from typing import Optional
 
 from devtools import debug
-from eth_utils import to_canonical_address
+from eth_utils import encode_hex, to_canonical_address
+from hexbytes import HexBytes
 from pydantic import BaseModel
 from typer import Typer
 
-from hexbytes import HexBytes
 from erigon.kv import ErigonKV, Op
 
 app = Typer()
@@ -26,15 +27,14 @@ def read_int(stream):
 
 
 class Account(BaseModel):
-    address: str
     nonce: int = 0
     balance: int = 0
     incarnation: int = 0  # 0 - not set, contracts start with 1, increased by selfdestruct + create2
     code_hash: Optional[bytes] = None
 
     @classmethod
-    def from_storage(cls, address: str, data: bytes):
-        account = cls(address=address)
+    def from_storage(cls, data: bytes):
+        account = cls()
         stream = io.BytesIO(data)
         field_set = AccountFieldSet(int.from_bytes(stream.read(1), "big"))
 
@@ -54,42 +54,61 @@ class Account(BaseModel):
 
         return account
 
-    def read_code(self):
-        assert self.code_hash, "no code"
-        kv = ErigonKV()
-        kv.open("Code")
-        data = kv.read(Op.SEEK_EXACT, k=self.code_hash)
-        return data.v
 
-    def read_storage(self):
-        if not self.incarnation:
-            return {}
-        kv = ErigonKV()
-        kv.open("PlainState", dup_sort=True)
-        prefix = to_canonical_address(self.address) + self.incarnation.to_bytes(8, "big")
-        data = [kv.read(Op.SEEK_EXACT, k=prefix)]
-        while item := kv.read(Op.NEXT_DUP):
-            if not item.k.startswith(prefix):
+async def read_account(kv: ErigonKV, canonical_address: bytes):
+    async with kv.open("PlainState") as cursor:
+        row = await cursor.seek_exact(canonical_address)
+        account = Account.from_storage(row.v)
+        return account
+
+
+async def read_code(kv: ErigonKV, code_hash: bytes):
+    async with kv.open("Code") as cursor:
+        row = await cursor.seek_exact(code_hash)
+        return row.v
+
+
+async def read_storage(kv: ErigonKV, canonical_address: bytes, account: Account):
+    if account.incarnation == 0:
+        return {}
+
+    async with kv.open("PlainState", dup_sort=True) as cursor:
+        prefix = canonical_address + account.incarnation.to_bytes(8, "big")
+        storage = {}
+        # [account:20][incarnation:8][key:32] | [value:32]
+        row = await cursor.seek_exact(prefix)
+        storage[row.v[:32]] = row.v[32:]
+
+        async for row in cursor:
+            debug(row.k.hex(), row.v.hex())
+            if not row.k.startswith(prefix):
                 break
-            data.append(item)
+            # no key | [key:32][value:32]
+            storage[row.k[-32:]] = row.v.rjust(32, b"\x00")
 
-        storage = {item.v[:32].hex(): item.v[32:].hex() for item in data}
-
-        debug(storage)
         return storage
 
 
-@app.command()
-def read_account(address: str):
+async def test_all(address: str):
     canonical_address = to_canonical_address(address)
+
     kv = ErigonKV()
-    kv.open("PlainState")
-    data = kv.read(Op.SEEK_EXACT, k=canonical_address)
-    assert data.k == canonical_address, "account not found"
-    account = Account.from_storage(address, data.v)
+    await kv.connect()
+
+    account = await read_account(kv, canonical_address)
     debug(account)
-    account.read_storage()
-    return account
+
+    code = await read_code(kv, account.code_hash)
+    debug(code)
+
+    storage = await read_storage(kv, canonical_address, account)
+    debug(storage)
+
+
+@app.command()
+def main(address: str):
+    account = asyncio.run(test_all(address))
+    debug(account)
 
 
 if __name__ == "__main__":
