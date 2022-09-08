@@ -68,12 +68,11 @@ async def read_code(kv: ErigonKV, code_hash: bytes):
         return row.v
 
 
-async def read_storage(kv: ErigonKV, canonical_address: bytes, account: Account):
-    if account.incarnation == 0:
-        return {}
+async def read_storage(kv: ErigonKV, canonical_address: bytes, incarnation: int):
+    assert incarnation > 0, "eoa has no storage"
 
     async with kv.open("PlainState", dup_sort=True) as cursor:
-        prefix = canonical_address + account.incarnation.to_bytes(8, "big")
+        prefix = canonical_address + incarnation.to_bytes(8, "big")
         storage = {}
         # [account:20][incarnation:8][key:32] | [value:32]
         row = await cursor.seek_exact(prefix)
@@ -100,7 +99,7 @@ async def test_all(address: str):
     code = await read_code(kv, account.code_hash)
     debug(code)
 
-    storage = await read_storage(kv, canonical_address, account)
+    storage = await read_storage(kv, canonical_address, account.incarnation)
     debug({encode_hex(k): encode_hex(v) for k, v in storage.items()})
 
 
