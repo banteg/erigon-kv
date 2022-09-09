@@ -29,6 +29,20 @@ class AccountChange(BaseModel):
     code: bytes
     storage_changes: list[StorageChange]
 
+    @classmethod
+    def from_message(cls, msg):
+        storage_changes = [
+            StorageChange(location=decode(x.location), data=x.data) for x in msg.storageChanges
+        ]
+        return cls(
+            address=decode(msg.address),
+            incarnation=msg.incarnation,
+            action=msg.action,
+            data=msg.data,
+            code=msg.code,
+            storage_changes=storage_changes,
+        )
+
 
 class StateChange(BaseModel):
     direction: int
@@ -50,11 +64,13 @@ class StateChange(BaseModel):
             else:
                 txs.append(rlp.decode(tx, sedes=LondonTypedTransaction)._inner)
 
+        changes = [AccountChange.from_message(x) for x in msg.changes]
+
         return cls(
             direction=msg.direction,
             block_height=msg.blockHeight,
             block_hash=decode(msg.blockHash),
-            changes=[],
+            changes=changes,
             txs=txs,
         )
 
