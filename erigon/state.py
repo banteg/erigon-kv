@@ -15,33 +15,37 @@ from erigon.accounts import Account
 from erigon.proto.remote.kv_pb2 import StateChangeRequest
 from erigon.proto.remote.kv_pb2_grpc import KVStub
 from erigon.types import decode, encode
+from devtools import PrettyFormat
+from enum import IntEnum
+
+pp = PrettyFormat(repr_strings=True)
 
 
-class StorageChange(BaseModel):
-    location: bytes
-    data: bytes
+class Action(IntEnum):
+    STORAGE = 0
+    UPSERT = 1
+    CODE = 2
+    UPSERT_CODE = 3
+    REMOVE = 4
 
 
 class AccountChange(BaseModel):
     address: bytes
     incarnation: int
-    action: int
+    action: Action
     data: Account
     code: bytes
-    storage_changes: list[StorageChange]
+    storage_changes: dict
 
     @classmethod
     def from_message(cls, msg):
-        storage_changes = [
-            StorageChange(location=decode(x.location), data=x.data) for x in msg.storageChanges
-        ]
         return cls(
             address=decode(msg.address),
             incarnation=msg.incarnation,
-            action=msg.action,
+            action=Action(msg.action),
             data=Account.from_storage(msg.data),
             code=msg.code,
-            storage_changes=storage_changes,
+            storage_changes={decode(x.location): x.data for x in msg.storageChanges},
         )
 
 
@@ -86,7 +90,7 @@ class ErigonStateChanges:
         async for item in changes:
             for change in item.changeBatch:
                 pretty = StateChange.from_message(change)
-                debug(pretty)
+                print(pp(pretty, highlight=True))
                 break
 
 
