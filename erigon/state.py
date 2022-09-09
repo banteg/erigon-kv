@@ -11,6 +11,7 @@ from eth.vm.forks.london.transactions import (
 )
 from pydantic import BaseModel
 
+from erigon.accounts import Account
 from erigon.proto.remote.kv_pb2 import StateChangeRequest
 from erigon.proto.remote.kv_pb2_grpc import KVStub
 from erigon.types import decode, encode
@@ -25,7 +26,7 @@ class AccountChange(BaseModel):
     address: bytes
     incarnation: int
     action: int
-    data: bytes
+    data: Account
     code: bytes
     storage_changes: list[StorageChange]
 
@@ -38,7 +39,7 @@ class AccountChange(BaseModel):
             address=decode(msg.address),
             incarnation=msg.incarnation,
             action=msg.action,
-            data=msg.data,
+            data=Account.from_storage(msg.data),
             code=msg.code,
             storage_changes=storage_changes,
         )
