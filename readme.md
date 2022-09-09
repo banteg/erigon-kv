@@ -19,7 +19,7 @@ async with kv.open('Code') as cursor:
         print(row)
 ```
 
-`ErigonKV.connect` connects to the private api (default: `127.0.0.1:9090`) and opens a read transaction. you will only ever need one transaction and it will have a consistent view.
+`ErigonKV.connect` connects to the private api (default: `127.0.0.1:9090`) and opens a read transaction. a transaction offers a consistent view over the database, but be wary of long-running transactions, as they can impact the database performance.
 
 `ErigonKV.open` returns an `ErigonCursor` object which supports async iteration and seeking. it will also automatically close the cursor when you are finished.
 
