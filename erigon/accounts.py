@@ -70,7 +70,7 @@ async def read_code(kv: ErigonKV, code_hash: bytes):
 async def read_storage(kv: ErigonKV, canonical_address: bytes, incarnation: int):
     assert incarnation > 0, "eoa has no storage"
 
-    async with kv.open("PlainState", dup_sort=True) as cursor:
+    async with kv.open("PlainState") as cursor:
         prefix = canonical_address + incarnation.to_bytes(8, "big")
         storage = {}
         # [account:20][incarnation:8][key:32] | [value:32]

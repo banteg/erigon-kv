@@ -21,8 +21,7 @@ class ErigonKV:
             async for row in cursor:
                 print(row)
         """
-        op = Op.OPEN_DUP_SORT if dup_sort else Op.OPEN
-        await self.conn.write(Cursor(op=op, bucketName=bucket))
+        await self.conn.write(Cursor(op=Op.OPEN, bucketName=bucket))
         cursor = await self.conn.read()
         try:
             yield ErigonCursor(self.conn, cursor.cursorID)
@@ -41,8 +40,7 @@ class ErigonCursor:
         return self
 
     async def __anext__(self):
-        op = Op.NEXT_DUP if self.dup_sort else Op.NEXT
-        return await self.read(op)
+        return await self.read(Op.NEXT)
 
     async def read(self, op, key=None, value=None):
         await self.conn.write(Cursor(op=op, k=key, v=value, cursor=self.cursor))
