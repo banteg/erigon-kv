@@ -1,1 +1,2 @@
-from .hashes import encode_hash, decode_hash
+from .hashes import HashType, decode_hash, encode_hash
+from .transactions import Transaction, decode_transaction

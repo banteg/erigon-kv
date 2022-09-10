@@ -1,20 +1,13 @@
 import asyncio
 
 import grpc
-import rlp
 from devtools import debug
-from eth.vm.forks.berlin.transactions import AccessListTransaction
-from eth.vm.forks.london.transactions import (
-    DynamicFeeTransaction,
-    LondonLegacyTransaction,
-    LondonTypedTransaction,
-)
 from pydantic import BaseModel
 
 from erigon.accounts import Account
 from erigon.proto.remote.kv_pb2 import StateChangeRequest
 from erigon.proto.remote.kv_pb2_grpc import KVStub
-from erigon.types import decode_hash, encode_hash
+from erigon.types import decode_hash, decode_transaction, Transaction
 from devtools import PrettyFormat
 from enum import IntEnum
 
@@ -54,7 +47,7 @@ class StateChange(BaseModel):
     block_height: int
     block_hash: bytes
     changes: list[AccountChange]
-    txs: list[LondonLegacyTransaction | AccessListTransaction | DynamicFeeTransaction]
+    txs: list[Transaction]
 
     class Config:
         arbitrary_types_allowed = True
@@ -63,11 +56,7 @@ class StateChange(BaseModel):
     def from_message(cls, msg):
         txs = []
         for tx in msg.txs:
-            # an rlp list indicates a legacy transaction
-            if tx[0] >= 0xC0:
-                txs.append(rlp.decode(tx, sedes=LondonLegacyTransaction))
-            else:
-                txs.append(rlp.decode(tx, sedes=LondonTypedTransaction)._inner)
+            txs.append(decode_transaction(tx))
 
         changes = [AccountChange.from_message(x) for x in msg.changes]
 
