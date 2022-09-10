@@ -1,6 +1,6 @@
 import pytest
 from erigon.proto.types.types_pb2 import H128, H160, H256, H512, H1024, H2048
-from erigon.types import decode, encode
+from erigon.types import decode_hash, encode_hash
 
 data = {
     "h128_1": {"enc": H128(hi=1, lo=2), "dec": "00000000000000010000000000000002"},
@@ -42,9 +42,9 @@ data["h2048"] = {
 
 @pytest.mark.parametrize("key", data)
 def test_decode(key):
-    assert decode(data[key]["enc"]) == bytes.fromhex(data[key]["dec"])
+    assert decode_hash(data[key]["enc"]) == bytes.fromhex(data[key]["dec"])
 
 
 @pytest.mark.parametrize("key", data)
 def test_encode(key):
-    assert encode(bytes.fromhex(data[key]["dec"])) == data[key]["enc"]
+    assert encode_hash(bytes.fromhex(data[key]["dec"])) == data[key]["enc"]

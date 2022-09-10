@@ -16,26 +16,26 @@ def to_int(data: bytes):
     return int.from_bytes(data, "big")
 
 
-def decode(msg: HashType) -> bytes:
+def decode_hash(msg: HashType) -> bytes:
     match msg:
         case H128():
             return to_bytes(msg.hi) + to_bytes(msg.lo)
         case H160():
-            return decode(msg.hi) + to_bytes(msg.lo, 4)
+            return decode_hash(msg.hi) + to_bytes(msg.lo, 4)
         case H256() | H512() | H1024() | H2048():
-            return decode(msg.hi) + decode(msg.lo)
+            return decode_hash(msg.hi) + decode_hash(msg.lo)
 
     raise TypeError("unsupported type %s", type(msg))
 
 
-def encode(data: bytes) -> HashType:
+def encode_hash(data: bytes) -> HashType:
     match len(data):
         case 16:
             return H128(hi=to_int(data[:8]), lo=to_int(data[8:]))
         case 20:
-            return H160(hi=encode(data[:16]), lo=to_int(data[16:20]))
+            return H160(hi=encode_hash(data[:16]), lo=to_int(data[16:20]))
         case 32 | 64 | 128 | 256 as size:
             half = size // 2
-            return HASH_TYPES[size](hi=encode(data[:half]), lo=encode(data[half:]))
+            return HASH_TYPES[size](hi=encode_hash(data[:half]), lo=encode_hash(data[half:]))
 
     raise ValueError("invalid data length %d", len(data))

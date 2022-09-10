@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from erigon.accounts import Account
 from erigon.proto.remote.kv_pb2 import StateChangeRequest
 from erigon.proto.remote.kv_pb2_grpc import KVStub
-from erigon.types import decode, encode
+from erigon.types import decode_hash, encode_hash
 from devtools import PrettyFormat
 from enum import IntEnum
 
@@ -40,12 +40,12 @@ class AccountChange(BaseModel):
     @classmethod
     def from_message(cls, msg):
         return cls(
-            address=decode(msg.address),
+            address=decode_hash(msg.address),
             incarnation=msg.incarnation,
             action=Action(msg.action),
             data=Account.from_storage(msg.data),
             code=msg.code,
-            storage_changes={decode(x.location): x.data for x in msg.storageChanges},
+            storage_changes={decode_hash(x.location): x.data for x in msg.storageChanges},
         )
 
 
@@ -74,7 +74,7 @@ class StateChange(BaseModel):
         return cls(
             direction=msg.direction,
             block_height=msg.blockHeight,
-            block_hash=decode(msg.blockHash),
+            block_hash=decode_hash(msg.blockHash),
             changes=changes,
             txs=txs,
         )
