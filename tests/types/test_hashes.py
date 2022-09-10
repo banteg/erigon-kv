@@ -41,10 +41,10 @@ data["h2048"] = {
 
 
 @pytest.mark.parametrize("key", data)
-def test_decode(key):
+def test_decode_hash(key):
     assert decode_hash(data[key]["enc"]) == bytes.fromhex(data[key]["dec"])
 
 
 @pytest.mark.parametrize("key", data)
-def test_encode(key):
+def test_encode_hash(key):
     assert encode_hash(bytes.fromhex(data[key]["dec"])) == data[key]["enc"]
