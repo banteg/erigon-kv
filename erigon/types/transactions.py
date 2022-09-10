@@ -14,7 +14,7 @@ def decode_transaction(data: bytes) -> Transaction:
     if data[0] >= 0xC0:
         return rlp.decode(data, sedes=LondonLegacyTransaction)
 
-    # there could be a header which contains encodes the payload size
+    # there could be a header which encodes the payload size
     if data[0] >= 0xB7:
         # len_of_len = data[0] - 0xb7
         # len_of_data = to_int(data[1:1+len_of_len])
