@@ -9,55 +9,15 @@ from pydantic import BaseModel
 from typer import Typer
 
 from erigon.kv import ErigonKV, Op
+from erigon.types import decode_account, Account
 
 app = Typer()
-
-
-class AccountFieldSet(enum.IntFlag):
-    nonce = 1
-    balance = 2
-    incarnation = 4
-    code_hash = 8
-
-
-def read_int(stream):
-    length = int.from_bytes(stream.read(1), "big")
-    return int.from_bytes(stream.read(length), "big")
-
-
-class Account(BaseModel):
-    nonce: int = 0
-    balance: int = 0
-    incarnation: int = 0  # 0 - not set, contracts start with 1, increased by selfdestruct + create2
-    code_hash: Optional[bytes] = None
-
-    @classmethod
-    def from_storage(cls, data: bytes):
-        account = cls()
-        stream = io.BytesIO(data)
-        field_set = AccountFieldSet(int.from_bytes(stream.read(1), "big"))
-
-        if AccountFieldSet.nonce in field_set:
-            account.nonce = read_int(stream)
-
-        if AccountFieldSet.balance in field_set:
-            account.balance = read_int(stream)
-
-        if AccountFieldSet.incarnation in field_set:
-            account.incarnation = read_int(stream)
-
-        if AccountFieldSet.code_hash in field_set:
-            length = int.from_bytes(stream.read(1), "big")
-            assert length == 32, "invalid encoding"
-            account.code_hash = stream.read(length)
-
-        return account
 
 
 async def read_account(kv: ErigonKV, canonical_address: bytes):
     async with kv.open("PlainState") as cursor:
         row = await cursor.seek_exact(canonical_address)
-        account = Account.from_storage(row.v)
+        account = decode_account(row.v)
         return account
 
 

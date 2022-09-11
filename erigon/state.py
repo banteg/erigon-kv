@@ -11,6 +11,8 @@ from erigon.types import decode_hash, decode_transaction, Transaction
 from devtools import PrettyFormat
 from enum import IntEnum
 
+from erigon.types.account import decode_account
+
 pp = PrettyFormat(repr_strings=True)
 
 
@@ -36,7 +38,7 @@ class AccountChange(BaseModel):
             address=decode_hash(msg.address),
             incarnation=msg.incarnation,
             action=Action(msg.action),
-            data=Account.from_storage(msg.data),
+            data=decode_account(msg.data),
             code=msg.code,
             storage_changes={decode_hash(x.location): x.data for x in msg.storageChanges},
         )
