@@ -32,7 +32,7 @@ OPCODES[0xFE] = "INVALID"
 
 def detect_compiler(code):
     # https://docs.soliditylang.org/en/v0.4.22/metadata.html#encoding-of-the-metadata-hash-in-the-bytecode
-    if code[-43:-41] == b"\xa1\x66":
+    if code[-43:-41] == b"\xa1\x65":
         # {"bzzr0": <32 bytes swarm hash>}
         pass  # this is not useful for us
 
@@ -65,7 +65,7 @@ def detect_compiler(code):
 
 
 def strip_metadata(code):
-    if code[-43:-41] == b"\xa1\x66":
+    if code[-43:-41] == b"\xa1\x65":
         return code[:-43]
     elif code[-53:-51] == b"\xa2\x64":
         return code[:-53]
